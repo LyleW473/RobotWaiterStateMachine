@@ -78,10 +78,13 @@ def main():
             return my_goal
 
         def navigation_result_cb(userdata, status, result):
-            rospy.loginfo(status)
             all_status_types = ["pending", "active", "preempted", "succeeded", "aborted", "rejected", "preempting", "recalling", "recalled", "lost"]  # From GoalStatus message definition
+            rospy.loginfo(status)
             rospy.loginfo(all_status_types[status])
+
+            # Set new status type (Status of the navigation)
             userdata.status_type = all_status_types[status]
+
             return all_status_types[status]
 
 
