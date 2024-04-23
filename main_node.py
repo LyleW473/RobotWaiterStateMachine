@@ -94,8 +94,8 @@ def main():
                                ),
                                transitions = {
                                             "succeeded": "STAGE_UPDATER",
-                                            "aborted": "NAVIGATE",
-                                            "preempted": "NAVIGATE"
+                                            "aborted": "STAGE_UPDATER",
+                                            "preempted": "STAGE_UPDATER"
                                             },
                                remapping={
                                    "current_stage": "current_stage",

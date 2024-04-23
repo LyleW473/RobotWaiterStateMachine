@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   move_base
   move_base_msgs
+  smach
 )
 
 ## System dependencies are found with CMake's conventions
@@ -110,7 +111,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES second_coursework
-  CATKIN_DEPENDS rospy std_msgs message_runtime actionlib actionlib_msgs move_base move_base_msgs
+  CATKIN_DEPENDS rospy std_msgs message_runtime actionlib actionlib_msgs move_base move_base_msgs smach
 #  DEPENDS system_lib
 )
 
