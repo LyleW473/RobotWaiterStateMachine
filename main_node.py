@@ -11,38 +11,43 @@ def main():
     # Create a SMACH state machine
     sm = smach.StateMachine(outcomes=['succeeded', 'aborted'], input_keys=["current_stage", "stages"])
 
-    class PointA(smach.State):
+    class StageUpdater(smach.State):
         def __init__(self, outcomes, input_keys, output_keys):
             smach.State.__init__(self, outcomes=outcomes, input_keys=input_keys, output_keys=output_keys)
         def execute(self, userdata):
-            rospy.loginfo("point A")
+            rospy.loginfo("StageUpdater")
             userdata.current_stage += 1
             rospy.loginfo(f"Current stage: {userdata.current_stage}")
-            return "success"
+
+            # Change events depending on whats needed
+            if userdata.current_stage == 0:
+                return "navigate"
+            if userdata.current_stage == 1:
+                return "navigate"
+            if userdata.current_stage == 2:
+                return "navigate"
+            if userdata.current_stage == 3:
+                return "completed"
+
 
     with sm:
 
-        sm.userdata.current_stage = 0
+        sm.userdata.current_stage = -1
         sm.userdata.stages = [
                                 {
                                  "position":{"x": 6.14, "y": 3.198230504989624},
                                  "orientation":{"z": -0.71, "w": 0.71}
+                                },
+
+                                {
+                                    "position": {"x": 6.14, "y": 8.42},
+                                    "orientation": {"z": -0.71, "w": 0.71}
+                                },
+
+                                {
+                                    "position": {"x": 1.956, "y": 2.90412},
+                                    "orientation": {"z": -0.71, "w": 0.71}
                                 }
-                                # Stage(
-                                #     stage_number=1,
-                                #     position={"x": 6.14, "y": 3.198230504989624},
-                                #     orientation={"z": -0.71, "w": 0.71}
-                                #     ),
-                                # Stage(
-                                #     stage_number=2,
-                                #     position={"x": 6.14, "y": 8.42},
-                                #     orientation={"z": -0.71, "w": 0.71}
-                                #     ),
-                                # Stage(
-                                #     stage_number=3,
-                                #     position={"x": 1.956, "y": 2.90412},
-                                #     orientation={"z": -0.71, "w": 0.71}
-                                #     ),
                                 ]
 
         def test_goal_cb(userdata, goal):
@@ -67,6 +72,19 @@ def main():
 
             return my_goal
 
+        smach.StateMachine.add(
+                               "STAGE_UPDATER",
+                               StageUpdater(
+                                            outcomes=["navigate", "completed"],
+                                            input_keys=["current_stage", "stages"],
+                                            output_keys=["current_stage"]
+                                            ),
+                               transitions={
+                                            "navigate": "NAVIGATE",
+                                            "completed": "succeeded"
+                                            },
+                               remapping={"current_stage": "current_stage"}
+                               )
         smach.StateMachine.add("NAVIGATE",
                                SimpleActionState("move_base",
                                MoveBaseAction,
@@ -74,22 +92,17 @@ def main():
                                input_keys = ["current_stage", "stages"]
 
                                ),
-                               transitions = {"succeeded": "POINT_A", "aborted": "NAVIGATE", "preempted": "NAVIGATE"},
+                               transitions = {
+                                            "succeeded": "STAGE_UPDATER",
+                                            "aborted": "NAVIGATE",
+                                            "preempted": "NAVIGATE"
+                                            },
                                remapping={
                                    "current_stage": "current_stage",
                                    "stages": "stages"
                                }
                                )
-        smach.StateMachine.add(
-                               "POINT_A",
-                               PointA(
-                                    outcomes=["success"],
-                                    input_keys=["current_stage"],
-                                    output_keys=["current_stage"]
-                                    ),
-                               transitions={"success": "succeeded"},
-                               remapping={"current_stage": "current_stage"}
-                               )
+
 
         rospy.loginfo(sm.userdata.current_stage)
 
