@@ -16,8 +16,12 @@ def main():
             smach.State.__init__(self, outcomes=outcomes, input_keys=input_keys, output_keys=output_keys)
         def execute(self, userdata):
             rospy.loginfo("StageUpdater")
-            userdata.current_stage += 1
-            rospy.loginfo(f"Current stage: {userdata.current_stage}")
+            rospy.loginfo(f"Current stage: {userdata.current_stage} | Status: {userdata.status_type}")
+
+            # Last stage was successful or is the initial state, otherwise keep repeating
+            if userdata.status_type == "succeeded" or userdata.status_type == "initial":
+                userdata.current_stage += 1
+                rospy.loginfo(f"Advancing to stage: {userdata.current_stage}")
 
             # Change events depending on whats needed
             if userdata.current_stage == 0:
@@ -49,8 +53,9 @@ def main():
                                     "orientation": {"z": -0.71, "w": 0.71}
                                 }
                                 ]
+        sm.userdata.status_type = "initial" # Default (Look at status types). Tracks if a stage was completed successfully or not
 
-        def test_goal_cb(userdata, goal):
+        def navigation_goal_cb(userdata, goal):
 
             rospy.loginfo(userdata.keys())
             current_stage = userdata.current_stage
@@ -72,24 +77,34 @@ def main():
 
             return my_goal
 
+        def navigation_result_cb(userdata, status, result):
+            rospy.loginfo(status)
+            all_status_types = ["pending", "active", "preempted", "succeeded", "aborted", "rejected", "preempting", "recalling", "recalled", "lost"]  # From GoalStatus message definition
+            rospy.loginfo(all_status_types[status])
+            userdata.status_type = all_status_types[status]
+            return all_status_types[status]
+
+
         smach.StateMachine.add(
                                "STAGE_UPDATER",
                                StageUpdater(
                                             outcomes=["navigate", "completed"],
-                                            input_keys=["current_stage", "stages"],
-                                            output_keys=["current_stage"]
+                                            input_keys=["current_stage", "stages", "status_type"],
+                                            output_keys=["current_stage", "status_type"]
                                             ),
                                transitions={
                                             "navigate": "NAVIGATE",
                                             "completed": "succeeded"
                                             },
-                               remapping={"current_stage": "current_stage"}
+                               remapping={"current_stage": "current_stage", "status_type":"status_type"}
                                )
         smach.StateMachine.add("NAVIGATE",
                                SimpleActionState("move_base",
                                MoveBaseAction,
-                               goal_cb=test_goal_cb,
-                               input_keys = ["current_stage", "stages"]
+                               goal_cb=navigation_goal_cb,
+                               result_cb=navigation_result_cb,
+                               input_keys = ["current_stage", "stages"],
+                               output_keys = ["status_type"]
 
                                ),
                                transitions = {
@@ -99,7 +114,8 @@ def main():
                                             },
                                remapping={
                                    "current_stage": "current_stage",
-                                   "stages": "stages"
+                                   "stages": "stages",
+                                   "status_type": "status_type"
                                }
                                )
 
