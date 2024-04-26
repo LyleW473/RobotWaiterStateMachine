@@ -90,14 +90,15 @@ class YOLOFoodDetection(smach.State):
 
     def execute(self, userdata):
 
-        # Rotate in place
-        self.rotate_inplace()
+        userdata.generating_detection = True
 
         # Send a request for detections
         request = YOLOLastFrameRequest()
         response = self.yolo_client(request)
         print(response.class_prediction, response.class_confidence)
         self.data = response
+
+        userdata.generating_detection = False
 
         # Check if objective has been achieved
         if self.data is None:
@@ -110,6 +111,21 @@ class YOLOFoodDetection(smach.State):
                 return "succeeded"
             else:
                 return "failed"
+
+
+class RotateState(smach.State):
+    def __init__(self, outcomes, input_keys, output_keys):
+        smach.State.__init__(self, outcomes=outcomes, input_keys=input_keys, output_keys=output_keys)
+        self.velocity_publisher = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
+
+    def execute(self, userdata):
+
+        # While detections are still being generated
+        while userdata.generating_detection == True:
+            # Rotate in place
+            self.rotate_inplace()
+
+        return "succeeded"
 
     def rotate_inplace(self):
         command = Twist()

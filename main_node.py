@@ -11,7 +11,10 @@ def main():
     rospy.init_node("main_node")
 
     # Create a SMACH state machine
-    sm = smach.StateMachine(outcomes=['succeeded', 'aborted'], input_keys=["current_stage", "locations", "status_type"])
+    sm = smach.StateMachine(
+                            outcomes=['succeeded', 'aborted'],
+                            input_keys=["current_stage", "locations", "status_type", "request_data"]
+                            )
 
     sm.userdata.current_stage = -1
     sm.userdata.locations = {
@@ -26,6 +29,7 @@ def main():
     }
     sm.userdata.status_type = "initial"  # Default (Look at status types). Tracks if a stage was completed successfully or not
     sm.userdata.request_data = {"personName": None, "foodName": "None"}
+    sm.userdata.generating_detection = False
 
     with sm:
 
@@ -83,20 +87,68 @@ def main():
                                         }
                                )
 
+        def food_detection_child_term_cb(outcome_map):
+            # Stop everything
+            if outcome_map["DETECT_FOOD"] == "succeeded":
+                return True
+            # Keep rotating + looking for detections
+            return False
+
+        def food_detection_outcome_cb(outcome_map):
+            if outcome_map["DETECT_FOOD"] == "succeeded":
+                return "succeeded"  # Finish concurrence
+            else:
+                return "failed"
+
+        # Concurrence for YOLO Detection
+        cc_food_detection = smach.Concurrence(
+                                            outcomes=["succeeded", "failed"],
+                                            default_outcome="failed",
+                                            input_keys=["request_data", "status_type", "generating_detection"],
+                                            output_keys=["status_type", "generating_detection"],
+                                            outcome_map={
+                                                        "succeeded": {
+                                                                    "DETECT_FOOD": "succeeded"
+                                                                    },
+                                                        "failed": {
+                                                                    "DETECT_FOOD": "failed"
+                                                                    }
+                                                        },
+                                            child_termination_cb=food_detection_child_term_cb,
+                                            outcome_cb=food_detection_outcome_cb
+                                            )
+        with cc_food_detection:
+
+            cc_food_detection.add("ROTATE_STATE",
+                                   RotateState(
+                                            outcomes=["succeeded"],
+                                            input_keys=["status_type", "generating_detection"],
+                                            output_keys=[],
+                                            )
+                                   )
+
+            cc_food_detection.add("DETECT_FOOD",
+                                   YOLOFoodDetection(
+                                                    outcomes=["succeeded", "failed"],
+                                                    input_keys=["status_type", "request_data", "generating_detection"],
+                                                    output_keys=["status_type", "generating_detection"]
+                                                    ),
+                                   remapping={
+                                            "status_type": "status_type",
+                                            "generating_detection":"generating_detection"
+                                            }
+                                   )
         smach.StateMachine.add("YOLO_FOOD_DETECTION",
-                               YOLOFoodDetection(
-                                                outcomes=["succeeded", "failed"],
-                                                input_keys=["status_type", "request_data"],
-                                                output_keys=["status_type"]
-                                                ),
+                               cc_food_detection,
                                transitions={
                                             "succeeded":"STAGE_UPDATER",
                                             "failed": "YOLO_FOOD_DETECTION"
                                            },
                                remapping={
-                                        "status_type": "status_type"
+                                        "status_type": "status_type",
+                                        "generating_detection":"generating_detection"
                                         }
-                               )
+                             )
 
         ## TO DO LIST: Fix the error with user data key stages not being available before state machine is run
         ## Implement waiting for request stage on topic
