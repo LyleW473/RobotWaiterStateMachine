@@ -34,7 +34,13 @@ class StageUpdater(smach.State):
             return "navigate"
         if userdata.current_stage == 3:
             return "food_detection"
+
+        # Note: ADD TTS for the person in the kitchen here:
+
         if userdata.current_stage == 4:
+            userdata.set_location = "TABLE"
+            return "navigate"
+        if userdata.current_stage == 5:
             return "completed"
 
     def reset_userdata(self, userdata):
