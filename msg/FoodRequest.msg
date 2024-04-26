@@ -1,0 +1,2 @@
+string personName
+string foodName

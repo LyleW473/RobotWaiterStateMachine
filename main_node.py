@@ -4,35 +4,13 @@ import rospy
 import smach
 from smach_ros import IntrospectionServer, SimpleActionState
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from states import *
 
 def main():
     rospy.init_node("main_node")
 
     # Create a SMACH state machine
     sm = smach.StateMachine(outcomes=['succeeded', 'aborted'], input_keys=["current_stage", "stages"])
-
-    class StageUpdater(smach.State):
-        def __init__(self, outcomes, input_keys, output_keys):
-            smach.State.__init__(self, outcomes=outcomes, input_keys=input_keys, output_keys=output_keys)
-        def execute(self, userdata):
-            rospy.loginfo("StageUpdater")
-            rospy.loginfo(f"Current stage: {userdata.current_stage} | Status: {userdata.status_type}")
-
-            # Last stage was successful or is the initial state, otherwise keep repeating
-            if userdata.status_type == "succeeded" or userdata.status_type == "initial":
-                userdata.current_stage += 1
-                rospy.loginfo(f"Advancing to stage: {userdata.current_stage}")
-
-            # Change events depending on whats needed
-            if userdata.current_stage == 0:
-                return "navigate"
-            if userdata.current_stage == 1:
-                return "navigate"
-            if userdata.current_stage == 2:
-                return "navigate"
-            if userdata.current_stage == 3:
-                return "completed"
-
 
     with sm:
 
@@ -54,6 +32,7 @@ def main():
                                 }
                                 ]
         sm.userdata.status_type = "initial" # Default (Look at status types). Tracks if a stage was completed successfully or not
+
 
         def navigation_goal_cb(userdata, goal):
 
@@ -91,12 +70,13 @@ def main():
         smach.StateMachine.add(
                                "STAGE_UPDATER",
                                StageUpdater(
-                                            outcomes=["navigate", "completed"],
+                                            outcomes=["navigate", "wait_for_request", "completed"],
                                             input_keys=["current_stage", "stages", "status_type"],
                                             output_keys=["current_stage", "status_type"]
                                             ),
                                transitions={
                                             "navigate": "NAVIGATE",
+                                            "wait_for_request": "WAIT_FOR_REQUEST",
                                             "completed": "succeeded"
                                             },
                                remapping={"current_stage": "current_stage", "status_type":"status_type"}
@@ -122,6 +102,22 @@ def main():
                                }
                                )
 
+        smach.StateMachine.add("WAIT_FOR_REQUEST",
+                               WaitForRequest(
+                                            outcomes=["succeeded", "failed"],
+                                            input_keys=["status_type"],
+                                            output_keys=["status_type"]
+                                            ),
+                               transitions={
+                                            "succeeded":"STAGE_UPDATER",
+                                            "failed": "WAIT_FOR_REQUEST"
+                                           },
+                               remapping={"status_type": "status_type"}
+                               )
+
+        ## TO DO LIST: Fix the error with user data key stages not being available before state machine is run
+        ## Implement waiting for request stage on topic
+        ## ....
 
         rospy.loginfo(sm.userdata.current_stage)
 
