@@ -18,18 +18,24 @@ class StageUpdater(smach.State):
             userdata.current_stage += 1
             rospy.loginfo(f"Advancing to stage: {userdata.current_stage}")
 
-        # Reset status type
-        userdata.status_type = "unknown"
+        # Reset user data
+        self.reset_userdata(userdata)
 
         # Change events depending on whats needed
         if userdata.current_stage == 0:
+            userdata.set_location = "TABLE"
             return "navigate"
         if userdata.current_stage == 1:
             return "wait_for_request"
         if userdata.current_stage == 2:
+            userdata.set_location = "KITCHEN"
             return "navigate"
         if userdata.current_stage == 3:
             return "completed"
+
+    def reset_userdata(self, userdata):
+        userdata.status_type = "unknown"
+        userdata.set_location = None
 
 
 """
