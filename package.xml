@@ -64,6 +64,7 @@
   <depend>move_base</depend>
   <depend>move_base_msgs</depend>
   <depend>smach</depend>
+  <depend>cv_bridge</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

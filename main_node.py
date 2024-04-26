@@ -25,19 +25,21 @@ def main():
         }
     }
     sm.userdata.status_type = "initial"  # Default (Look at status types). Tracks if a stage was completed successfully or not
+    sm.userdata.request_data = {"personName": None, "foodName": "None"}
 
     with sm:
 
         smach.StateMachine.add(
                                "STAGE_UPDATER",
                                StageUpdater(
-                                            outcomes=["navigate", "wait_for_request", "completed"],
+                                            outcomes=["navigate", "wait_for_request", "food_detection", "completed"],
                                             input_keys=["current_stage", "locations", "set_location", "status_type"],
                                             output_keys=["current_stage", "set_location", "status_type"]
                                             ),
                                transitions={
                                             "navigate": "NAVIGATE",
                                             "wait_for_request": "WAIT_FOR_REQUEST",
+                                            "food_detection": "YOLO_FOOD_DETECTION",
                                             "completed": "succeeded"
                                             },
                                remapping={
@@ -68,12 +70,28 @@ def main():
         smach.StateMachine.add("WAIT_FOR_REQUEST",
                                WaitForRequest(
                                             outcomes=["succeeded", "failed"],
-                                            input_keys=["status_type"],
-                                            output_keys=["status_type"]
+                                            input_keys=["status_type", "request_data"],
+                                            output_keys=["status_type", "request_data"]
                                             ),
                                transitions={
                                             "succeeded":"STAGE_UPDATER",
                                             "failed": "WAIT_FOR_REQUEST"
+                                           },
+                               remapping={
+                                        "status_type": "status_type",
+                                        "request_data": "request_data"
+                                        }
+                               )
+
+        smach.StateMachine.add("YOLO_FOOD_DETECTION",
+                               YOLOFoodDetection(
+                                                outcomes=["succeeded", "failed"],
+                                                input_keys=["status_type", "request_data"],
+                                                output_keys=["status_type"]
+                                                ),
+                               transitions={
+                                            "succeeded":"STAGE_UPDATER",
+                                            "failed": "YOLO_FOOD_DETECTION"
                                            },
                                remapping={
                                         "status_type": "status_type"

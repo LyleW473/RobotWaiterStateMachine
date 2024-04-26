@@ -55,14 +55,14 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    FoodRequest.msg
+   YOLODetection.msg
  )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+ add_service_files(
+   FILES
+   YOLOLastFrame.srv
+ )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -110,7 +110,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES second_coursework
-  CATKIN_DEPENDS rospy std_msgs message_runtime actionlib actionlib_msgs move_base move_base_msgs smach
+  CATKIN_DEPENDS rospy std_msgs message_runtime actionlib actionlib_msgs move_base move_base_msgs smach cv_bridge
 #  DEPENDS system_lib
 )
 
