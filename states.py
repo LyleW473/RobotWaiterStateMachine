@@ -1,8 +1,10 @@
+import actionlib
 import rospy
 import smach
 from second_coursework.msg import FoodRequest
 from yolo_service import YOLOService
 from second_coursework.srv import YOLOLastFrame, YOLOLastFrameRequest
+from geometry_msgs.msg import Twist
 
 """
 State used to transition between different stages
@@ -84,7 +86,12 @@ class YOLOFoodDetection(smach.State):
         self.yolo_service = YOLOService()
         self.yolo_client = rospy.ServiceProxy("/detect_food", YOLOLastFrame)
 
+        self.velocity_publisher = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
+
     def execute(self, userdata):
+
+        # Rotate in place
+        self.rotate_inplace()
 
         # Send a request for detections
         request = YOLOLastFrameRequest()
@@ -92,9 +99,9 @@ class YOLOFoodDetection(smach.State):
         print(response.class_prediction, response.class_confidence)
         self.data = response
 
+        # Check if objective has been achieved
         if self.data is None:
             return "failed"
-
         else:
             # Check whether the food found is the one requested by the user
             if response.class_prediction == userdata.request_data["foodName"].lower():
@@ -104,5 +111,15 @@ class YOLOFoodDetection(smach.State):
             else:
                 return "failed"
 
-    def receive_data(self, data):
-        self.data = data
+    def rotate_inplace(self):
+        command = Twist()
+
+        command.linear.x = 0
+        command.linear.y = 0
+        command.linear.z = 0
+
+        command.angular.x = 0
+        command.angular.y = 0
+        command.angular.z = 1
+
+        self.velocity_publisher.publish(command)

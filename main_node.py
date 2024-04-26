@@ -17,11 +17,11 @@ def main():
     sm.userdata.locations = {
         "TABLE": {
             "position": {"x": 6.14, "y": 3.198230504989624},
-            "orientation": {"z": -0.71, "w": 0.71}
+            "orientation": {"z": 0.71, "w": 0.71}
         },
         "KITCHEN": {
             "position": {"x": 1.956, "y": 2.90412},
-            "orientation": {"z": -0.71, "w": 0.71}
+            "orientation": {"z": 0.71, "w": 0.71}
         }
     }
     sm.userdata.status_type = "initial"  # Default (Look at status types). Tracks if a stage was completed successfully or not
