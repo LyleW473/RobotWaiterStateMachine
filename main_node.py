@@ -13,7 +13,7 @@ def main():
     # Create a SMACH state machine
     sm = smach.StateMachine(
                             outcomes=['succeeded', 'aborted'],
-                            input_keys=["current_stage", "locations", "status_type", "request_data"]
+                            # input_keys=["current_stage", "locations", "status_type", "request_data"]
                             )
 
     sm.userdata.current_stage = -1
@@ -30,17 +30,19 @@ def main():
     sm.userdata.status_type = "initial"  # Default (Look at status types). Tracks if a stage was completed successfully or not
     sm.userdata.request_data = {"personName": None, "foodName": "None"}
     sm.userdata.generating_detection = False
+    sm.userdata.rotate_to_localise = False
 
     with sm:
 
         smach.StateMachine.add(
                                "STAGE_UPDATER",
                                StageUpdater(
-                                            outcomes=["navigate", "wait_for_request", "food_detection", "completed"],
-                                            input_keys=["current_stage", "locations", "set_location", "status_type"],
-                                            output_keys=["current_stage", "set_location", "status_type"]
+                                            outcomes=["rotate", "navigate", "wait_for_request", "food_detection", "completed"],
+                                            input_keys=["current_stage", "locations", "set_location", "status_type", "rotate_to_localise"],
+                                            output_keys=["current_stage", "set_location", "status_type", "rotate_to_localise"]
                                             ),
                                transitions={
+                                            "rotate": "ROTATE",
                                             "navigate": "NAVIGATE",
                                             "wait_for_request": "WAIT_FOR_REQUEST",
                                             "food_detection": "YOLO_FOOD_DETECTION",
@@ -49,7 +51,8 @@ def main():
                                remapping={
                                         "current_stage": "current_stage",
                                         "set_location": "set_location",
-                                        "status_type":"status_type"
+                                        "status_type": "status_type",
+                                        "rotate_to_localise": "rotate_to_localise"
                                         }
                                )
         smach.StateMachine.add("NAVIGATE",
@@ -70,7 +73,19 @@ def main():
                                         "status_type": "status_type",
                                         }
                                )
-
+        smach.StateMachine.add("ROTATE",
+                              RotateState(
+                                  outcomes=["succeeded"],
+                                  input_keys=["rotate_to_localise", "generating_detection", "status_type"],
+                                  output_keys=["rotate_to_localise", "status_type"],
+                              ),
+                              transitions={
+                                            "succeeded": "STAGE_UPDATER",
+                                            },
+                              remapping={
+                                  "rotate_to_localise": "rotate_to_localise",
+                                  "status_type": "status_type"}
+                              )
         smach.StateMachine.add("WAIT_FOR_REQUEST",
                                WaitForRequest(
                                             outcomes=["succeeded", "failed"],
@@ -104,7 +119,7 @@ def main():
         cc_food_detection = smach.Concurrence(
                                             outcomes=["succeeded", "failed"],
                                             default_outcome="failed",
-                                            input_keys=["request_data", "status_type", "generating_detection"],
+                                            input_keys=["request_data", "status_type", "generating_detection", "rotate_to_localise"],
                                             output_keys=["status_type", "generating_detection"],
                                             outcome_map={
                                                         "succeeded": {
@@ -119,10 +134,10 @@ def main():
                                             )
         with cc_food_detection:
 
-            cc_food_detection.add("ROTATE_STATE",
+            cc_food_detection.add("ROTATE_STATE_FOOD",
                                    RotateState(
                                             outcomes=["succeeded"],
-                                            input_keys=["status_type", "generating_detection"],
+                                            input_keys=["rotate_to_localise", "generating_detection"],
                                             output_keys=[],
                                             )
                                    )
@@ -151,8 +166,8 @@ def main():
                              )
 
         ## TO DO LIST: Fix the error with user data key stages not being available before state machine is run
-        ## Implement waiting for request stage on topic
-        ## ....
+        ## - Move callback functions into callback.py
+        ## - Add comments to states.py and remove the highlighted comment in the #TODO
 
         rospy.loginfo(sm.userdata.current_stage)
 

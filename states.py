@@ -26,23 +26,24 @@ class StageUpdater(smach.State):
         self.reset_userdata(userdata)
 
         # Change events depending on whats needed
-        if userdata.current_stage == 0:
+        if userdata.current_stage == 0: # Used for localisation because of poor navigation without it
+            userdata.rotate_to_localise = True
+            return "rotate"
+        if userdata.current_stage == 1:
             userdata.set_location = "TABLE"
             return "navigate"
-        if userdata.current_stage == 1:
-            return "wait_for_request"
         if userdata.current_stage == 2:
+            return "wait_for_request"
+        if userdata.current_stage == 3:
             userdata.set_location = "KITCHEN"
             return "navigate"
-        if userdata.current_stage == 3:
-            return "food_detection"
-
-        # Note: ADD TTS for the person in the kitchen here:
-
         if userdata.current_stage == 4:
+            return "food_detection"
+        # Note: ADD TTS for the person in the kitchen here:
+        if userdata.current_stage == 5:
             userdata.set_location = "TABLE"
             return "navigate"
-        if userdata.current_stage == 5:
+        if userdata.current_stage == 6:
             return "completed"
 
     def reset_userdata(self, userdata):
@@ -97,7 +98,6 @@ class YOLOFoodDetection(smach.State):
         response = self.yolo_client(request)
         print(response.class_prediction, response.class_confidence)
         self.data = response
-
         userdata.generating_detection = False
 
         # Check if objective has been achieved
@@ -120,14 +120,25 @@ class RotateState(smach.State):
 
     def execute(self, userdata):
 
-        # While detections are still being generated
-        while userdata.generating_detection == True:
-            # Rotate in place
-            self.rotate_inplace()
+        # Rotate state used to localise robot (rotate for 2.5 seconds)
+        if userdata.rotate_to_localise == True:
+            rospy.loginfo("reached")
+            old_time = rospy.get_time()
+            while rospy.get_time() - old_time < 2.5:
+                self.rotate_inplace(rotate_speed=1)
 
+            userdata.rotate_to_localise = False
+            userdata.status_type = "succeeded"
+        else:
+            # While detections are still being generated
+            while userdata.generating_detection == True:
+                rospy.loginfo(userdata.rotate_to_localise)
+                # Rotate in place
+                self.rotate_inplace(rotate_speed=5)
+        rospy.loginfo("REACHED")
         return "succeeded"
 
-    def rotate_inplace(self):
+    def rotate_inplace(self, rotate_speed=1):
         command = Twist()
 
         command.linear.x = 0
@@ -136,6 +147,6 @@ class RotateState(smach.State):
 
         command.angular.x = 0
         command.angular.y = 0
-        command.angular.z = 1
+        command.angular.z = rotate_speed
 
         self.velocity_publisher.publish(command)
