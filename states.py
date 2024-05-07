@@ -90,7 +90,7 @@ class YOLOFoodDetection(smach.State):
     def __init__(self, outcomes, input_keys, output_keys):
         smach.State.__init__(self, outcomes=outcomes, input_keys=input_keys, output_keys=output_keys)
         self.last_detection = None
-        self.detections_subscriber = rospy.Subscriber("/food_detections", YOLOLastDetectPrediction, self.detection_callback)
+        self.detections_subscriber = rospy.Subscriber("/food_detections", YOLOLastDetectPrediction, self.detection_callback, queue_size=10)
         self.velocity_publisher = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
 
     def detection_callback(self, message):
@@ -161,7 +161,7 @@ class TalkState(smach.State):
         message = String()
         message.data = userdata.speech_message
         self.speech_publisher.publish(message)
-        rospy.sleep(5)
+        rospy.sleep(3)
 
         userdata.status_type = "succeeded"
         return "succeeded"

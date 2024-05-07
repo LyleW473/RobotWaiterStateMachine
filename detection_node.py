@@ -24,35 +24,37 @@ class DetectionNode:
                                  meta_path="/home/k22039642/ros_ws2/src/second_coursework/config/coco.data"
                                  )
 
-        self.detections_publisher = rospy.Publisher("/food_detections", YOLOLastDetectPrediction, queue_size=1)
-        self.camera_subscriber = rospy.Subscriber("/camera/image", Image, self.process_raw_image)
-        self.last_recorded_time = rospy.get_time()
+        self.detections_publisher = rospy.Publisher("/food_detections", YOLOLastDetectPrediction, queue_size=10)
+        self.camera_subscriber = rospy.Subscriber("/camera/image", Image, self.process_raw_image, queue_size=10)
+        self.rate = rospy.Rate(10)
 
     def process_raw_image(self, msg):
         raw_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         if raw_image is None:
             rospy.logwarn("No image received yet!")
         else:
-            current_time = rospy.get_time()
-            # If 2.5 seconds have passed (change rate of images)
-            if current_time - self.last_recorded_time > 2.5:
-                self.last_recorded_time = current_time
 
-                raw_image = cv2.resize(raw_image, (self.detector.network_width(), self.detector.network_height()))
-                # Increase brightness to allow for clearer detections
-                self.cv_image = cv2.convertScaleAbs(raw_image, alpha=0.95, beta=30)
+            raw_image = cv2.resize(raw_image, (self.detector.network_width(), self.detector.network_height()))
+            # Increase brightness to allow for clearer detections
+            self.cv_image = cv2.convertScaleAbs(raw_image, alpha=0.95, beta=30)
 
-                # Generate detection based on raw image
-                self.generate_detection()
+            # Generate detection based on raw image
+            self.generate_detection()
+            self.rate.sleep()
 
     def generate_detection(self):
         response = YOLOLastDetectPrediction()
         rospy.loginfo("Generating detections")
 
         # Generate detections
+        current_time = rospy.get_time()
         detections = self.detector.perform_detect(image_path_or_buf=self.cv_image, show_image=True)
+        end_time = rospy.get_time()
+        rospy.loginfo(f"Time taken: {end_time - current_time}")
+
         cv_height, cv_width, _ = self.cv_image.shape
         for detection in detections:
+
             d = YOLODetection(detection.class_name, detection.class_confidence, detection.left_x, detection.top_y,
                               detection.width, detection.height)
             # Create and publish response
@@ -62,6 +64,8 @@ class DetectionNode:
 
             rospy.loginfo(f'{detection.class_name.ljust(10)} | {detection.class_confidence * 100:.1f} %')
             self.detections_publisher.publish(response)
+
+
 
 if __name__ == "__main__":
     rospy.init_node("detections_node")
