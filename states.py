@@ -1,9 +1,7 @@
 import actionlib
 import rospy
 import smach
-from second_coursework.msg import FoodRequest
-from yolo_service import YOLOService
-from second_coursework.srv import YOLOLastFrame, YOLOLastFrameRequest
+from second_coursework.msg import FoodRequest, YOLOLastDetectPrediction
 from geometry_msgs.msg import Twist
 
 """
@@ -82,31 +80,28 @@ State to detect food when inside of room D.
 class YOLOFoodDetection(smach.State):
     def __init__(self, outcomes, input_keys, output_keys):
         smach.State.__init__(self, outcomes=outcomes, input_keys=input_keys, output_keys=output_keys)
-        self.data = None
-
-        self.yolo_service = YOLOService()
-        self.yolo_client = rospy.ServiceProxy("/detect_food", YOLOLastFrame)
-
+        self.last_detection = None
+        self.detections_subscriber = rospy.Subscriber("/food_detections", YOLOLastDetectPrediction, self.detection_callback)
         self.velocity_publisher = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
+
+    def detection_callback(self, message):
+        self.last_detection = message
 
     def execute(self, userdata):
 
-        userdata.generating_detection = True
-
-        # Send a request for detections
-        request = YOLOLastFrameRequest()
-        response = self.yolo_client(request)
-        print(response.class_prediction, response.class_confidence)
-        self.data = response
-        userdata.generating_detection = False
-
         # Check if objective has been achieved
-        if self.data is None:
+        if self.last_detection is None:
+            rospy.loginfo(self.last_detection)
+            rospy.loginfo("No detection found")
             return "failed"
         else:
+            print(self.last_detection)
+            print(self.last_detection.class_prediction, userdata.request_data["foodName"].lower())
+            rospy.loginfo("Found detection")
             # Check whether the food found is the one requested by the user
-            if response.class_prediction == userdata.request_data["foodName"].lower():
-                print("Found correct food!")
+            if self.last_detection.class_prediction == userdata.request_data["foodName"].lower():
+                rospy.loginfo(self.last_detection.class_prediction == userdata.request_data["foodName"].lower())
+                rospy.loginfo("Found correct food!")
                 userdata.status_type = "succeeded"
                 return "succeeded"
             else:
@@ -130,11 +125,8 @@ class RotateState(smach.State):
             userdata.rotate_to_localise = False
             userdata.status_type = "succeeded"
         else:
-            # While detections are still being generated
-            while userdata.generating_detection == True:
-                rospy.loginfo(userdata.rotate_to_localise)
-                # Rotate in place
-                self.rotate_inplace(rotate_speed=5)
+            rospy.loginfo(userdata.rotate_to_localise)
+            self.rotate_inplace(rotate_speed=5)
         rospy.loginfo("REACHED")
         return "succeeded"
 

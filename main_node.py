@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 import smach
@@ -29,7 +29,6 @@ def main():
     }
     sm.userdata.status_type = "initial"  # Default (Look at status types). Tracks if a stage was completed successfully or not
     sm.userdata.request_data = {"personName": None, "foodName": "None"}
-    sm.userdata.generating_detection = False
     sm.userdata.rotate_to_localise = False
 
     with sm:
@@ -76,7 +75,7 @@ def main():
         smach.StateMachine.add("ROTATE",
                               RotateState(
                                   outcomes=["succeeded"],
-                                  input_keys=["rotate_to_localise", "generating_detection", "status_type"],
+                                  input_keys=["rotate_to_localise", "status_type"],
                                   output_keys=["rotate_to_localise", "status_type"],
                               ),
                               transitions={
@@ -119,8 +118,8 @@ def main():
         cc_food_detection = smach.Concurrence(
                                             outcomes=["succeeded", "failed"],
                                             default_outcome="failed",
-                                            input_keys=["request_data", "status_type", "generating_detection", "rotate_to_localise"],
-                                            output_keys=["status_type", "generating_detection"],
+                                            input_keys=["request_data", "status_type", "rotate_to_localise"],
+                                            output_keys=["status_type"],
                                             outcome_map={
                                                         "succeeded": {
                                                                     "DETECT_FOOD": "succeeded"
@@ -137,7 +136,7 @@ def main():
             cc_food_detection.add("ROTATE_STATE_FOOD",
                                    RotateState(
                                             outcomes=["succeeded"],
-                                            input_keys=["rotate_to_localise", "generating_detection"],
+                                            input_keys=["rotate_to_localise"],
                                             output_keys=[],
                                             )
                                    )
@@ -145,12 +144,11 @@ def main():
             cc_food_detection.add("DETECT_FOOD",
                                    YOLOFoodDetection(
                                                     outcomes=["succeeded", "failed"],
-                                                    input_keys=["status_type", "request_data", "generating_detection"],
-                                                    output_keys=["status_type", "generating_detection"]
+                                                    input_keys=["status_type", "request_data"],
+                                                    output_keys=["status_type"]
                                                     ),
                                    remapping={
                                             "status_type": "status_type",
-                                            "generating_detection":"generating_detection"
                                             }
                                    )
         smach.StateMachine.add("YOLO_FOOD_DETECTION",
@@ -161,7 +159,6 @@ def main():
                                            },
                                remapping={
                                         "status_type": "status_type",
-                                        "generating_detection":"generating_detection"
                                         }
                              )
 

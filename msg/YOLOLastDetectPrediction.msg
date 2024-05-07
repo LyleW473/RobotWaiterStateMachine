@@ -1,5 +1,3 @@
 second_coursework/YOLODetection[] detections
----
-second_coursework/YOLODetection[] detections
 string class_prediction
 float32 class_confidence
