@@ -28,30 +28,33 @@ def main():
         }
     }
     sm.userdata.status_type = "initial"  # Default (Look at status types). Tracks if a stage was completed successfully or not
-    sm.userdata.request_data = {"personName": None, "foodName": "None"}
+    sm.userdata.request_data = {"person_name": None, "food_name": "None"}
     sm.userdata.rotate_to_localise = False
+    sm.userdata.speech_message = ""
 
     with sm:
 
         smach.StateMachine.add(
                                "STAGE_UPDATER",
                                StageUpdater(
-                                            outcomes=["rotate", "navigate", "wait_for_request", "food_detection", "completed"],
-                                            input_keys=["current_stage", "locations", "set_location", "status_type", "rotate_to_localise"],
-                                            output_keys=["current_stage", "set_location", "status_type", "rotate_to_localise"]
+                                            outcomes=["rotate", "navigate", "wait_for_request", "food_detection","talk", "completed"],
+                                            input_keys=["current_stage", "locations", "set_location", "status_type", "rotate_to_localise", "speech_message", "request_data"],
+                                            output_keys=["current_stage", "set_location", "status_type", "rotate_to_localise", "speech_message"]
                                             ),
                                transitions={
                                             "rotate": "ROTATE",
                                             "navigate": "NAVIGATE",
                                             "wait_for_request": "WAIT_FOR_REQUEST",
                                             "food_detection": "YOLO_FOOD_DETECTION",
+                                            "talk": "TALK",
                                             "completed": "succeeded"
                                             },
                                remapping={
                                         "current_stage": "current_stage",
                                         "set_location": "set_location",
                                         "status_type": "status_type",
-                                        "rotate_to_localise": "rotate_to_localise"
+                                        "rotate_to_localise": "rotate_to_localise",
+                                        "speech_message": "speech_message"
                                         }
                                )
         smach.StateMachine.add("NAVIGATE",
@@ -98,6 +101,19 @@ def main():
                                remapping={
                                         "status_type": "status_type",
                                         "request_data": "request_data"
+                                        }
+                               )
+        smach.StateMachine.add("TALK",
+                               TalkState(
+                                            outcomes=["succeeded"],
+                                            input_keys=["status_type", "speech_message"],
+                                            output_keys=["status_type"]
+                                            ),
+                               transitions={
+                                            "succeeded":"STAGE_UPDATER",
+                                           },
+                               remapping={
+                                        "status_type": "status_type"
                                         }
                                )
 

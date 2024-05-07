@@ -3,6 +3,7 @@ import rospy
 import smach
 from second_coursework.msg import FoodRequest, YOLOLastDetectPrediction
 from geometry_msgs.msg import Twist
+from std_msgs.msg import String
 
 """
 State used to transition between different stages
@@ -27,26 +28,34 @@ class StageUpdater(smach.State):
         if userdata.current_stage == 0: # Used for localisation because of poor navigation without it
             userdata.rotate_to_localise = True
             return "rotate"
-        if userdata.current_stage == 1:
+        elif userdata.current_stage == 1:
             userdata.set_location = "TABLE"
             return "navigate"
-        if userdata.current_stage == 2:
+        elif userdata.current_stage == 2:
             return "wait_for_request"
-        if userdata.current_stage == 3:
+        elif userdata.current_stage == 3:
             userdata.set_location = "KITCHEN"
             return "navigate"
-        if userdata.current_stage == 4:
+        elif userdata.current_stage == 4:
             return "food_detection"
-        # Note: ADD TTS for the person in the kitchen here:
-        if userdata.current_stage == 5:
+        elif userdata.current_stage == 5:
+            msg = f'Please place the {userdata.request_data["food_name"]} on me!'
+            userdata.speech_message = msg
+            return "talk"
+        elif userdata.current_stage == 6:
             userdata.set_location = "TABLE"
             return "navigate"
-        if userdata.current_stage == 6:
+        elif userdata.current_stage == 7:
+            msg = f'Hello {userdata.request_data["person_name"]}, here is your {userdata.request_data["food_name"]}.'
+            userdata.speech_message = msg
+            return "talk"
+        elif userdata.current_stage == 8:
             return "completed"
 
     def reset_userdata(self, userdata):
         userdata.status_type = "unknown"
         userdata.set_location = None
+        userdata.speech_message = ""
 
 
 """
@@ -65,10 +74,10 @@ class WaitForRequest(smach.State):
             return "failed"
         else:
             userdata.status_type = "succeeded"
-            userdata.request_data["personName"] = self.data.personName
-            userdata.request_data["foodName"] = self.data.foodName
+            userdata.request_data["person_name"] = self.data.person_name
+            userdata.request_data["food_name"] = self.data.food_name
             rospy.loginfo("Received data on topic /food_request!")
-            rospy.loginfo(f" {self.data.personName} | {self.data.foodName}")
+            rospy.loginfo(f" {self.data.person_name} | {self.data.food_name}")
             return "succeeded"
 
     def receive_data(self, data):
@@ -96,11 +105,11 @@ class YOLOFoodDetection(smach.State):
             return "failed"
         else:
             print(self.last_detection)
-            print(self.last_detection.class_prediction, userdata.request_data["foodName"].lower())
+            print(self.last_detection.class_prediction, userdata.request_data["food_name"].lower())
             rospy.loginfo("Found detection")
             # Check whether the food found is the one requested by the user
-            if self.last_detection.class_prediction == userdata.request_data["foodName"].lower():
-                rospy.loginfo(self.last_detection.class_prediction == userdata.request_data["foodName"].lower())
+            if self.last_detection.class_prediction == userdata.request_data["food_name"].lower():
+                rospy.loginfo(self.last_detection.class_prediction == userdata.request_data["food_name"].lower())
                 rospy.loginfo("Found correct food!")
                 userdata.status_type = "succeeded"
                 return "succeeded"
@@ -142,3 +151,17 @@ class RotateState(smach.State):
         command.angular.z = rotate_speed
 
         self.velocity_publisher.publish(command)
+
+class TalkState(smach.State):
+    def __init__(self, outcomes, input_keys, output_keys):
+        smach.State.__init__(self, outcomes=outcomes, input_keys=input_keys, output_keys=output_keys)
+        self.speech_publisher = rospy.Publisher("/tts/phrase", String, queue_size=10)
+
+    def execute(self, userdata):
+        message = String()
+        message.data = userdata.speech_message
+        self.speech_publisher.publish(message)
+        rospy.sleep(5)
+
+        userdata.status_type = "succeeded"
+        return "succeeded"

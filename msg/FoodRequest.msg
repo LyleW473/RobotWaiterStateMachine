@@ -1,2 +1,2 @@
-string personName
-string foodName
+string person_name
+string food_name
