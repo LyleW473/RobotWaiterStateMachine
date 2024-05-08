@@ -8,14 +8,15 @@ project(second_coursework)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  rospy
-  std_msgs
   message_generation
-  actionlib
-  actionlib_msgs
-  move_base
+  sensor_msgs
   move_base_msgs
+  geometry_msgs
+  std_msgs
+  rospy
+  cv_bridge
   smach
+  smach_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -73,9 +74,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate added messages and services with any dependencies listed here
  generate_messages(
    DEPENDENCIES
-   std_msgs
-   actionlib_msgs
+   sensor_msgs
    move_base_msgs
+   geometry_msgs
+   std_msgs
  )
 
 ################################################
@@ -110,7 +112,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES second_coursework
-  CATKIN_DEPENDS rospy std_msgs message_runtime actionlib actionlib_msgs move_base move_base_msgs smach cv_bridge
+   CATKIN_DEPENDS rospy message_runtime sensor_msgs move_base_msgs geometry_msgs std_msgs cv_bridge cv2 yolov4 smach smach_ros
 #  DEPENDS system_lib
 )
 

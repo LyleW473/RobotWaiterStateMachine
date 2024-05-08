@@ -2,11 +2,8 @@
 
 import rospy
 from cv_bridge import CvBridge
-import numpy as np
 import cv2
 from yolov4 import Detector
-import random
-# TODO add here missing imports from ros messages such as Image, YOLODetection, etc.
 from sensor_msgs.msg import Image
 from second_coursework.msg import YOLODetection, YOLOLastDetectPrediction
 
