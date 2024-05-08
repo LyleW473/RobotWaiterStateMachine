@@ -21,9 +21,9 @@ class DetectionNode:
                                  meta_path="/home/k22039642/ros_ws2/src/second_coursework/config/coco.data"
                                  )
 
-        self.detections_publisher = rospy.Publisher("/food_detections", YOLOLastDetectPrediction, queue_size=10)
-        self.camera_subscriber = rospy.Subscriber("/camera/image", Image, self.process_raw_image, queue_size=10)
-        self.rate = rospy.Rate(10)
+        self.detections_publisher = rospy.Publisher("/food_detections", YOLOLastDetectPrediction, queue_size=1)
+        self.camera_subscriber = rospy.Subscriber("/camera/image", Image, self.process_raw_image, queue_size=1)
+        self.rate = rospy.Rate(1)
 
     def process_raw_image(self, msg):
         raw_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
