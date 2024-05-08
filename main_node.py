@@ -34,7 +34,7 @@ def main():
         }
     }
     sm.userdata.status_type = "initial"  # Default (Look at status types). Tracks if a stage was completed successfully or not
-    sm.userdata.request_data = {"person_name": None, "food_name": "None"}
+    sm.userdata.request_data = {"person_name": None, "food_name": None, "request_number": 0}
     sm.userdata.rotate_to_localise = False
     sm.userdata.speech_message = ""
 

@@ -46,7 +46,11 @@ class StageUpdater(State):
             userdata.speech_message = msg
             return "talk"
         elif userdata.current_stage == 8:
-            return "completed"
+            userdata.request_data["person_name"] = None
+            userdata.request_data["food_name"] = None
+            userdata.request_data["request_number"] += 1  # Increment id number
+            userdata.current_stage = 2
+            return "wait_for_request"
 
     def reset_userdata(self, userdata):
         userdata.status_type = "unknown"
