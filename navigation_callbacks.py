@@ -2,7 +2,6 @@ import rospy
 from move_base_msgs.msg import MoveBaseGoal
 
 def navigation_goal_cb(userdata, goal):
-    rospy.loginfo(userdata.keys())
     set_location = userdata.set_location
 
     my_goal = MoveBaseGoal()
@@ -26,9 +25,6 @@ def navigation_goal_cb(userdata, goal):
 def navigation_result_cb(userdata, status, result):
     all_status_types = ["pending", "active", "preempted", "succeeded", "aborted", "rejected", "preempting", "recalling",
                         "recalled", "lost"]  # From GoalStatus message definition
-    rospy.loginfo(status)
-    rospy.loginfo(all_status_types[status])
-
     # Set new status type (Status of the navigation)
     userdata.status_type = all_status_types[status]
 

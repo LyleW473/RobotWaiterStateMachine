@@ -11,7 +11,6 @@ class RotateState(State):
 
         # Rotate state used to localise robot (rotate for 2.5 seconds)
         if userdata.rotate_to_localise == True:
-            rospy.loginfo("reached")
             old_time = rospy.get_time()
             while rospy.get_time() - old_time < 2.5:
                 self.rotate_inplace(rotate_speed=1)
@@ -19,9 +18,7 @@ class RotateState(State):
             userdata.rotate_to_localise = False
             userdata.status_type = "succeeded"
         else:
-            rospy.loginfo(userdata.rotate_to_localise)
             self.rotate_inplace(rotate_speed=5)
-        rospy.loginfo("REACHED")
         return "succeeded"
 
     def rotate_inplace(self, rotate_speed=1):

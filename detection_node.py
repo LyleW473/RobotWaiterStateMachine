@@ -44,10 +44,7 @@ class DetectionNode:
         rospy.loginfo("Generating detections")
 
         # Generate detections
-        current_time = rospy.get_time()
         detections = self.detector.perform_detect(image_path_or_buf=self.cv_image, show_image=True)
-        end_time = rospy.get_time()
-        rospy.loginfo(f"Time taken: {end_time - current_time}")
 
         cv_height, cv_width, _ = self.cv_image.shape
         for detection in detections:

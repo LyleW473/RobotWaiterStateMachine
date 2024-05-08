@@ -9,7 +9,6 @@ class StageUpdater(State):
         State.__init__(self, outcomes=outcomes, input_keys=input_keys, output_keys=output_keys)
 
     def execute(self, userdata):
-        rospy.loginfo("StageUpdater")
         rospy.loginfo(f"Current stage: {userdata.current_stage} | Status: {userdata.status_type}")
 
         # Last stage was successful or is the initial state, otherwise keep repeating

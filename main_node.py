@@ -187,12 +187,6 @@ def main():
                                         }
                              )
 
-        ## TO DO LIST: Fix the error with user data key stages not being available before state machine is run
-        ## - Move callback functions into callback.py
-        ## - Add comments to states.py and remove the highlighted comment in the #TODO
-
-        rospy.loginfo(sm.userdata.current_stage)
-
     sis = IntrospectionServer("my_server", sm, "SM_ROOT")
     sis.start()
     outcome = sm.execute()

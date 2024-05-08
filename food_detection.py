@@ -20,16 +20,12 @@ class YOLOFoodDetection(State):
 
         # Check if objective has been achieved
         if self.last_detection is None:
-            rospy.loginfo(self.last_detection)
             rospy.loginfo("No detection found")
             return "failed"
         else:
-            print(self.last_detection)
-            print(self.last_detection.class_prediction, userdata.request_data["food_name"].lower())
             rospy.loginfo("Found detection")
             # Check whether the food found is the one requested by the user
             if self.last_detection.class_prediction == userdata.request_data["food_name"].lower():
-                rospy.loginfo(self.last_detection.class_prediction == userdata.request_data["food_name"].lower())
                 rospy.loginfo("Found correct food!")
                 userdata.status_type = "succeeded"
                 return "succeeded"
