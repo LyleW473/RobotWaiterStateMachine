@@ -3,7 +3,7 @@
 <include file="$(find rosplan_stage_demo)/launch/empty_stage_single_robot.launch" />
 
 <node pkg="second_coursework" type="detection_node.py" name="detection_node" />
-<node pkg="second_coursework" type="itr_cwAI_video" name="video_player_node" args="$(find second_coursework)/vid_folder" />
+<node pkg="second_coursework" type="itr_cwAI_video" name="video_player_node" args="$/home/k22039642/ros_ws2/src/second_coursework/vid_folder" />
 <node pkg="second_coursework" type="main_node.py" name="main_node" />
 
 </launch>

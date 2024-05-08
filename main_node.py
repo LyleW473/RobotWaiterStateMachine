@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 
+import rospy
 import smach
 from smach_ros import IntrospectionServer, SimpleActionState
 from move_base_msgs.msg import MoveBaseAction
+from std_msgs.msg import String
 
 # Import states
 from rotate import RotateState
 from stage_updater import StageUpdater
 from food_detection import YOLOFoodDetection
-from talk import TalkState
 from wait_for_request import WaitForRequest
 
-from callbacks import *
+from navigation_callbacks import navigation_goal_cb, navigation_result_cb
+from speech_callback import talk_cb
 
 def main():
     rospy.init_node("main_node")
@@ -64,14 +66,14 @@ def main():
                                         }
                                )
         smach.StateMachine.add("NAVIGATE",
-                               SimpleActionState("move_base",
-                               MoveBaseAction,
-                               goal_cb=navigation_goal_cb,
-                               result_cb=navigation_result_cb,
-                               input_keys = ["current_stage", "locations", "set_location"],
-                               output_keys = ["status_type"]
-
-                               ),
+                               SimpleActionState(
+                                                "move_base",
+                                                MoveBaseAction,
+                                                goal_cb=navigation_goal_cb,
+                                                result_cb=navigation_result_cb,
+                                                input_keys = ["current_stage", "locations", "set_location"],
+                                                output_keys = ["status_type"]
+                                                ),
                                transitions = {
                                             "succeeded": "STAGE_UPDATER",
                                             "aborted": "STAGE_UPDATER",
@@ -109,11 +111,12 @@ def main():
                                         "request_data": "request_data"
                                         }
                                )
+
+        text_speech_publisher = rospy.Publisher("/tts/phrase", String, queue_size=10)
         smach.StateMachine.add("TALK",
-                               TalkState(
-                                            outcomes=["succeeded"],
-                                            input_keys=["status_type", "speech_message"],
-                                            output_keys=["status_type"]
+                               smach.CBState(
+                                            talk_cb,
+                                            cb_kwargs={"speech_publisher": text_speech_publisher}
                                             ),
                                transitions={
                                             "succeeded":"STAGE_UPDATER",
