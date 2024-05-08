@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 
-import rospy
 import smach
 from smach_ros import IntrospectionServer, SimpleActionState
 from move_base_msgs.msg import MoveBaseAction
-from states import *
+
+# Import states
+from rotate import RotateState
+from stage_updater import StageUpdater
+from food_detection import YOLOFoodDetection
+from talk import TalkState
+from wait_for_request import WaitForRequest
+
 from callbacks import *
 
 def main():
